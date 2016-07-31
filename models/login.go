@@ -22,6 +22,7 @@ import (
 	"github.com/gogits/gogs/modules/auth/ldap"
 	"github.com/gogits/gogs/modules/auth/pam"
 	"github.com/gogits/gogs/modules/log"
+//	"github.com/gogits/gogs/modules/setting"
 )
 
 var (

@@ -219,6 +219,10 @@ var (
 	ShowFooterVersion     bool
 	SupportMiniWinService bool
 
+	// Auth settings
+	AuthBackends []string
+	//AuthBackend []LoginSource
+
 	// Global setting objects
 	Cfg          *ini.File
 	CustomPath   string // Custom directory path
@@ -484,6 +488,22 @@ func NewContext() {
 	ShowFooterVersion = Cfg.Section("other").Key("SHOW_FOOTER_VERSION").MustBool()
 
 	HasRobotsTxt = com.IsFile(path.Join(CustomPath, "robots.txt"))
+
+//	AuthBackends = Cfg.Section("auth").Key("BACKENDS").Strings(",")
+//	herm := Cfg.Section("auth").Key("BACKENDS").MustString("default")
+	println("--DEBUG START--")
+//	println(strings.Join(AuthBackends, "-"))
+	for _, section := range Cfg.SectionStrings() {
+		println(section)
+	}
+//	println(strings.Join(Cfg.SectionStrings(), "-"))
+//	println(herm)
+	println("-- DEBUG END --")
+/*
+	for _, backend := range AuthBackends  {
+		println(backend)
+	}
+*/
 }
 
 var Service struct {
