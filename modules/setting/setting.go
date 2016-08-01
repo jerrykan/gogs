@@ -55,24 +55,24 @@ const (
 	LOGIN_PAM              // 4
 	LOGIN_DLDAP            // 5
 )
-// END: import from models/login.go
 
-// TODO: import from 'models/login.go' as well?
 var LoginNames = map[LoginType]string{
 	LOGIN_LDAP:  "LDAP (via BindDN)",
 	LOGIN_DLDAP: "LDAP (simple auth)", // Via direct bind
 	LOGIN_SMTP:  "SMTP",
 	LOGIN_PAM:   "PAM",
 }
+// END: import from models/login.go
 
 type LoginSourceCfg interface {
 //	validate bool
 }
 
 type LoginSource struct {
+	ID   int64
 	Name string
 	Type LoginType
-	Cfg  LoginSourceCfg
+	Cfg  ldap.Source //LoginSourceCfg
 }
 
 /*
@@ -548,7 +548,7 @@ func NewContext() {
 	AuthSources = Cfg.Section("auth").Key("SOURCES").Strings(",")
 	AuthSourceMap = make(map[string]LoginSource)
 	println("--DEBUG START--")
-	for _, source := range AuthSources {
+	for i, source := range AuthSources {
 		sourceSection := "auth." + source
 		authType := strings.ToLower(Cfg.Section(sourceSection).Key("BACKEND").MustString(""))
 		switch authType {
@@ -558,6 +558,7 @@ func NewContext() {
 				Port: 389,
 				SkipVerify: false,
 				AttributesInBind: false,
+//				IsActived: true,
 			}
 			Cfg.Section(sourceSection).MapTo(&cfg)
 			tls := strings.ToUpper(Cfg.Section(sourceSection).Key("TLS").MustString("START_TLS"))
@@ -571,7 +572,7 @@ func NewContext() {
 			default:
 				// TODO: raise some error
 			}
-			AuthSourceMap[source] = LoginSource{source, LOGIN_LDAP, cfg}
+			AuthSourceMap[source] = LoginSource{int64(i), source, LOGIN_LDAP, *cfg}
 		default:
 			println("UNKNOWN:", source)
 		}

@@ -279,9 +279,10 @@ func DeleteSource(source *LoginSource) error {
 // LoginUserLDAPSource queries if loginName/passwd can login against the LDAP directory pool,
 // and create a local user if success when enabled.
 // It returns the same LoginUserPlain semantic.
-func LoginUserLDAPSource(u *User, loginName, passwd string, source *LoginSource, autoRegister bool) (*User, error) {
-	cfg := source.Cfg.(*LDAPConfig)
-	directBind := (source.Type == LOGIN_DLDAP)
+func LoginUserLDAPSource(u *User, loginName, passwd string, source *setting.LoginSource, autoRegister bool) (*User, error) {
+//	cfg := source.Cfg.(*LDAPConfig)
+	cfg := ldap.Source(source.Cfg)
+	directBind := (source.Type == setting.LOGIN_DLDAP)
 	username, fn, sn, mail, isAdmin, logged := cfg.SearchEntry(loginName, passwd, directBind)
 	if !logged {
 		// User not in LDAP, do nothing
@@ -450,7 +451,7 @@ func LoginUserSMTPSource(u *User, name, passwd string, sourceID int64, cfg *SMTP
 	u = &User{
 		LowerName:   strings.ToLower(loginName),
 		Name:        strings.ToLower(loginName),
-		LoginType:   LOGIN_SMTP,
+		LoginType:   setting.LOGIN_SMTP,
 		LoginSource: sourceID,
 		LoginName:   name,
 		IsActive:    true,
@@ -487,7 +488,7 @@ func LoginUserPAMSource(u *User, name, passwd string, sourceID int64, cfg *PAMCo
 	u = &User{
 		LowerName:   strings.ToLower(name),
 		Name:        name,
-		LoginType:   LOGIN_PAM,
+		LoginType:   setting.LOGIN_PAM,
 		LoginSource: sourceID,
 		LoginName:   name,
 		IsActive:    true,
@@ -497,21 +498,23 @@ func LoginUserPAMSource(u *User, name, passwd string, sourceID int64, cfg *PAMCo
 	return u, CreateUser(u)
 }
 
-func ExternalUserLogin(u *User, name, passwd string, source *LoginSource, autoRegister bool) (*User, error) {
-/*
 func ExternalUserLogin(u *User, name, passwd string, source *setting.LoginSource, autoRegister bool) (*User, error) {
+/*
+func ExternalUserLogin(u *User, name, passwd string, source *LoginSource, autoRegister bool) (*User, error) {
 	if !source.IsActived {
 		return nil, ErrLoginSourceNotActived
 	}
 */
 
 	switch source.Type {
-	case LOGIN_LDAP, LOGIN_DLDAP:
+	case setting.LOGIN_LDAP, setting.LOGIN_DLDAP:
 		return LoginUserLDAPSource(u, name, passwd, source, autoRegister)
-	case LOGIN_SMTP:
+	/*
+	case setting.LOGIN_SMTP:
 		return LoginUserSMTPSource(u, name, passwd, source.ID, source.Cfg.(*SMTPConfig), autoRegister)
-	case LOGIN_PAM:
+	case setting.LOGIN_PAM:
 		return LoginUserPAMSource(u, name, passwd, source.ID, source.Cfg.(*PAMConfig), autoRegister)
+	*/
 	}
 
 	return nil, ErrUnsupportedLoginType
@@ -533,7 +536,7 @@ func UserSignIn(uname, passwd string) (*User, error) {
 
 	if userExists {
 		switch u.LoginType {
-		case LOGIN_NOTYPE, LOGIN_PLAIN:
+		case setting.LOGIN_NOTYPE, setting.LOGIN_PLAIN:
 			if u.ValidatePassword(passwd) {
 				return u, nil
 			}
@@ -551,7 +554,7 @@ func UserSignIn(uname, passwd string) (*User, error) {
 				return nil, ErrLoginSourceNotExist
 			}
 
-			return ExternalUserLogin(u, u.LoginName, passwd, &source, false)
+//			return ExternalUserLogin(u, u.LoginName, passwd, &source, false)
 		}
 	}
 
@@ -564,13 +567,11 @@ func UserSignIn(uname, passwd string) (*User, error) {
 
 	for _, sourceName := range setting.AuthSources {
         source := setting.AuthSourceMap[sourceName]
-/*
 		u, err := ExternalUserLogin(nil, uname, passwd, &source, true)
 		if err == nil {
 			return u, nil
 		}
-*/
-        err := "debugging"
+//        err := "debugging"
 		log.Warn("Failed to login '%s' via '%s': %v", uname, source.Name, err)
 	}
 

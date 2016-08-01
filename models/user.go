@@ -59,7 +59,7 @@ type User struct {
 	// Email is the primary email address (to be used for communication)
 	Email       string `xorm:"NOT NULL"`
 	Passwd      string `xorm:"NOT NULL"`
-	LoginType   LoginType
+	LoginType   setting.LoginType
 	LoginSource int64 `xorm:"NOT NULL DEFAULT 0"`
 	LoginName   string
 	Type        UserType
@@ -132,7 +132,7 @@ func (u *User) AfterSet(colName string, _ xorm.Cell) {
 
 // returns true if user login type is LOGIN_PLAIN.
 func (u *User) IsLocal() bool {
-	return u.LoginType <= LOGIN_PLAIN
+	return u.LoginType <= setting.LOGIN_PLAIN
 }
 
 // HasForkedRepo checks if user has already forked a repository with given ID.

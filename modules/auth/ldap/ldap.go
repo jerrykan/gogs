@@ -39,9 +39,9 @@ type Source struct {
 	AttributeUsername string // Username attribute
 	AttributeName     string // First name attribute
 	AttributeSurname  string // Surname attribute
-	AttributeMail     string `ini:"ATTR_EMAIL"` // E-mail attribute
+	AttributeMail     string `ini:"ATTR_EMAIL"`  // E-mail attribute
 	AttributesInBind  bool   // fetch attributes in bind context (not user)
-	Filter            string // Query filter to validate entry
+	Filter            string `ini:"USER_FILTER"` // Query filter to validate entry
 	AdminFilter       string // Query filter to check if user is admin
 	Enabled           bool   // if this source is disabled
 }
