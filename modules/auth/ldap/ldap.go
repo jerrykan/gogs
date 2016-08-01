@@ -32,14 +32,14 @@ type Source struct {
 	Port              int    // port number
 	SecurityProtocol  SecurityProtocol
 	SkipVerify        bool
-	BindDN            string // DN to bind with
+	BindDN            string `ini:"BIND_DN"` // DN to bind with
 	BindPassword      string // Bind DN password
 	UserBase          string // Base search path for users
 	UserDN            string // Template for the DN of the user for simple auth
 	AttributeUsername string // Username attribute
 	AttributeName     string // First name attribute
 	AttributeSurname  string // Surname attribute
-	AttributeMail     string // E-mail attribute
+	AttributeMail     string `ini:"ATTR_EMAIL"` // E-mail attribute
 	AttributesInBind  bool   // fetch attributes in bind context (not user)
 	Filter            string // Query filter to validate entry
 	AdminFilter       string // Query filter to check if user is admin

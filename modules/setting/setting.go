@@ -22,6 +22,7 @@ import (
 	_ "github.com/go-macaron/session/redis"
 	"gopkg.in/ini.v1"
 
+	"github.com/gogits/gogs/modules/auth/ldap"
 	"github.com/gogits/gogs/modules/bindata"
 	"github.com/gogits/gogs/modules/log"
 	"github.com/gogits/gogs/modules/user"
@@ -41,6 +42,60 @@ const (
 	LANDING_PAGE_HOME    LandingPage = "/"
 	LANDING_PAGE_EXPLORE LandingPage = "/explore"
 )
+
+// TODO: START: import from 'models/login.go'
+type LoginType int
+
+// Note: new type must be added at the end of list to maintain compatibility.
+const (
+	LOGIN_NOTYPE LoginType = iota
+	LOGIN_PLAIN            // 1
+	LOGIN_LDAP             // 2
+	LOGIN_SMTP             // 3
+	LOGIN_PAM              // 4
+	LOGIN_DLDAP            // 5
+)
+// END: import from models/login.go
+
+// TODO: import from 'models/login.go' as well?
+var LoginNames = map[LoginType]string{
+	LOGIN_LDAP:  "LDAP (via BindDN)",
+	LOGIN_DLDAP: "LDAP (simple auth)", // Via direct bind
+	LOGIN_SMTP:  "SMTP",
+	LOGIN_PAM:   "PAM",
+}
+
+type LoginSourceCfg interface {
+//	validate bool
+}
+
+type LoginSource struct {
+	Name string
+	Type LoginType
+	Cfg  LoginSourceCfg
+}
+
+/*
+type LDAPSourceCfg struct {
+//	Name              string // canonical name (ie. corporate.ad)
+	Host              string // LDAP host
+	Port              int    // port number
+	SecurityProtocol  ldap.SecurityProtocol
+	SkipVerify        bool
+	BindDN            string `ini:"BIND_DN"`
+	BindPassword      string // Bind DN password
+	UserBase          string // Base search path for users
+	UserDN            string // Template for the DN of the user for simple auth
+	AttributeUsername string // Username attribute
+	AttributeName     string // First name attribute
+	AttributeSurname  string // Surname attribute
+	AttributeMail     string `ini:"ATTR_EMAIL"` // E-mail attribute
+	AttributesInBind  bool   // fetch attributes in bind context (not user)
+	Filter            string // Query filter to validate entry
+	AdminFilter       string // Query filter to check if user is admin
+//	Enabled           bool   // if this source is disabled
+}
+*/
 
 var (
 	// Build information
@@ -220,8 +275,9 @@ var (
 	SupportMiniWinService bool
 
 	// Auth settings
-	AuthBackends []string
-	//AuthBackend []LoginSource
+	AuthSources   []string
+	AuthSourceMap map[string]LoginSource
+//	AuthSourceMap map[string]string
 
 	// Global setting objects
 	Cfg          *ini.File
@@ -489,21 +545,48 @@ func NewContext() {
 
 	HasRobotsTxt = com.IsFile(path.Join(CustomPath, "robots.txt"))
 
-//	AuthBackends = Cfg.Section("auth").Key("BACKENDS").Strings(",")
-//	herm := Cfg.Section("auth").Key("BACKENDS").MustString("default")
+	AuthSources = Cfg.Section("auth").Key("SOURCES").Strings(",")
+	AuthSourceMap = make(map[string]LoginSource)
 	println("--DEBUG START--")
-//	println(strings.Join(AuthBackends, "-"))
-	for _, section := range Cfg.SectionStrings() {
-		println(section)
-	}
-//	println(strings.Join(Cfg.SectionStrings(), "-"))
-//	println(herm)
-	println("-- DEBUG END --")
+	for _, source := range AuthSources {
+		sourceSection := "auth." + source
+		authType := strings.ToLower(Cfg.Section(sourceSection).Key("BACKEND").MustString(""))
+		switch authType {
+		case "ldap":
+			cfg := &ldap.Source{
+				Name: source,
+				Port: 389,
+				SkipVerify: false,
+				AttributesInBind: false,
+			}
+			Cfg.Section(sourceSection).MapTo(&cfg)
+			tls := strings.ToUpper(Cfg.Section(sourceSection).Key("TLS").MustString("START_TLS"))
+			switch tls {
+			case "START_TLS":
+				cfg.SecurityProtocol = ldap.SECURITY_PROTOCOL_START_TLS
+			case "LDAPS":
+				cfg.SecurityProtocol = ldap.SECURITY_PROTOCOL_LDAPS
+			case "NONE":
+				cfg.SecurityProtocol = ldap.SECURITY_PROTOCOL_UNENCRYPTED
+			default:
+				// TODO: raise some error
+			}
+			AuthSourceMap[source] = LoginSource{source, LOGIN_LDAP, cfg}
+		default:
+			println("UNKNOWN:", source)
+		}
+		fmt.Printf("%+v\n", AuthSourceMap[source])
+		fmt.Printf("%+v\n", AuthSourceMap[source].Cfg)
+		println("")
 /*
-	for _, backend := range AuthBackends  {
-		println(backend)
-	}
+		println(
+			"Name:", AuthSourceMap[source].Name, ",",
+			"Type:", AuthSourceMap[source].Type, "(" + LoginNames[AuthSourceMap[source].Type] + ")", ",",
+			"Cfg:", AuthSourceMap[source].Cfg,
+		)
 */
+	}
+	println("-- DEBUG END --")
 }
 
 var Service struct {

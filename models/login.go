@@ -22,7 +22,7 @@ import (
 	"github.com/gogits/gogs/modules/auth/ldap"
 	"github.com/gogits/gogs/modules/auth/pam"
 	"github.com/gogits/gogs/modules/log"
-//	"github.com/gogits/gogs/modules/setting"
+	"github.com/gogits/gogs/modules/setting"
 )
 
 var (
@@ -498,9 +498,12 @@ func LoginUserPAMSource(u *User, name, passwd string, sourceID int64, cfg *PAMCo
 }
 
 func ExternalUserLogin(u *User, name, passwd string, source *LoginSource, autoRegister bool) (*User, error) {
+/*
+func ExternalUserLogin(u *User, name, passwd string, source *setting.LoginSource, autoRegister bool) (*User, error) {
 	if !source.IsActived {
 		return nil, ErrLoginSourceNotActived
 	}
+*/
 
 	switch source.Type {
 	case LOGIN_LDAP, LOGIN_DLDAP:
@@ -539,6 +542,8 @@ func UserSignIn(uname, passwd string) (*User, error) {
 
 		default:
 			var source LoginSource
+            // TODO: patch in the app.ini login sources somewhere around here
+            //  maybe even in preference to the DB sources
 			hasSource, err := x.Id(u.LoginSource).Get(&source)
 			if err != nil {
 				return nil, err
@@ -554,13 +559,18 @@ func UserSignIn(uname, passwd string) (*User, error) {
 	if err = x.UseBool().Find(&sources, &LoginSource{IsActived: true}); err != nil {
 		return nil, err
 	}
+    // TODO: patch in the app.ini login sources somewhere around here
+    //  maybe even in preference to the DB sources
 
-	for _, source := range sources {
+	for _, sourceName := range setting.AuthSources {
+        source := setting.AuthSourceMap[sourceName]
+/*
 		u, err := ExternalUserLogin(nil, uname, passwd, &source, true)
 		if err == nil {
 			return u, nil
 		}
-
+*/
+        err := "debugging"
 		log.Warn("Failed to login '%s' via '%s': %v", uname, source.Name, err)
 	}
 
